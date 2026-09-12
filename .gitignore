@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.vercel/
+.env
+.env.*
+!.env.example
+secrets/
+*service-account*.json
+*.jks
+*.keystore
+*.log

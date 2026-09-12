@@ -1,0 +1,7 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Private image bytes are served only through the authorized Dart API.
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

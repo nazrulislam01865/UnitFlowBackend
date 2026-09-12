@@ -1,0 +1,7 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // NestJS API is the sole record writer/reader. IAM protects its service account.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

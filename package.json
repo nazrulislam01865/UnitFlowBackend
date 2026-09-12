@@ -1,0 +1,52 @@
+{
+  "name": "unitflow-nestjs-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone NestJS API compatible with the Unitflow Flutter application",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:emulator": "node --experimental-vm-modules --require ./test/enable-emulator.cjs node_modules/jest/bin/jest.js --runInBand --testPathPatterns=emulator",
+    "format": "prettier --write src test",
+    "format:check": "prettier --check src test"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "9.1.0",
+    "@google-cloud/storage": "8.1.0",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "firebase-admin": "^14.4.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/testing": "^11.1.6",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.18.0",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.1.3",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.1",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "multer": "^2.3.0",
+    "gaxios": {
+      "uuid": "^11.1.1"
+    }
+  }
+}
