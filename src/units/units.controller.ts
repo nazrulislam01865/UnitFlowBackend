@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentAccess, CurrentUser } from '../auth/auth.decorators';
 import { Access } from '../auth/access';
-import { Identity } from '../common/models';
+import { identifier } from '../common/validation/fields';
+import { ApiError, forbidden } from '../common/errors/api-error';
+import { Identity, Unit } from '../common/models';
 import { HouseGuard } from '../auth/house.guard';
 import { ListService } from '../common/list.service';
 import { ListQueryDto } from '../common/list-query.dto';
@@ -18,6 +20,14 @@ export class UnitsController {
   @Get() async list(@CurrentUser() user: Identity, @Query() query: ListQueryDto) {
     this.lists.validate(query);
     return this.lists.list(await Access.load(this.store, user), 'units', query);
+  }
+  @Get(':id')
+  @UseGuards(HouseGuard)
+  async detail(@CurrentAccess() a: Access, @Param('id') id: string) {
+    const unit = await this.store.get<Unit>(a.path('units', identifier(id)));
+    if (!unit) throw new ApiError(404, 'not_found', 'Unit not found.');
+    if (!a.staff && unit.residentUid !== a.identity.uid) forbidden();
+    return unit;
   }
   @Post()
   @UseGuards(HouseGuard)

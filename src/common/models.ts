@@ -2,6 +2,8 @@ export interface Identity {
   uid: string;
   email: string;
   name: string;
+  managedHouseId?: string;
+  requestedHouseId?: string;
 }
 export interface Profile {
   id?: string;
@@ -10,6 +12,9 @@ export interface Profile {
   phone?: string;
   address?: string;
   houseId?: string;
+  boundHouseId?: string;
+  managedAccount?: boolean;
+  activationPending?: boolean;
 }
 export interface Tariff {
   effectiveCycle: string;

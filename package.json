@@ -14,7 +14,8 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:emulator": "node --experimental-vm-modules --require ./test/enable-emulator.cjs node_modules/jest/bin/jest.js --runInBand --testPathPatterns=emulator",
     "format": "prettier --write src test",
-    "format:check": "prettier --check src test"
+    "format:check": "prettier --check src test",
+    "check:database": "node scripts/check-database.cjs"
   },
   "dependencies": {
     "@google-cloud/firestore": "7.11.6",

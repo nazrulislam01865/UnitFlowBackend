@@ -49,7 +49,10 @@ export class UnitsService {
       tx.set(a.path('units', id), unit);
       tx.set(a.path('unitLabels', hash(label)), { unitId: id });
       tx.set(a.path('meterIds', hash(meter)), { unitId: id });
-      tx.set(`houses/${a.houseId}`, { ...house, unitCount: house.unitCount + 1 });
+      tx.set(`houses/${a.houseId}`, {
+        ...house,
+        unitCount: house.unitCount + 1,
+      });
       this.audit.log(tx, a, 'Unit created', { after: unit });
       return unit;
     });

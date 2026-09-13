@@ -33,12 +33,23 @@ export class Access {
     )
       forbidden();
   }
-  static async load(store: Store, identity: Identity): Promise<Access> {
-    const profile = await store.get<Profile>(`profiles/${identity.uid}`);
+  static async load(store: Store, identity: Identity, loadedProfile?: Profile): Promise<Access> {
+    const profile = loadedProfile ?? (await store.get<Profile>(`profiles/${identity.uid}`));
     const house = profile?.houseId;
     if (!house) throw new ApiError(403, 'unassigned', 'Your account is not assigned to a house.');
+    if (
+      (identity.requestedHouseId && identity.requestedHouseId !== house) ||
+      (identity.managedHouseId && identity.managedHouseId !== house) ||
+      (profile?.boundHouseId && profile.boundHouseId !== house)
+    )
+      throw new ApiError(403, 'house_changed', 'This account cannot access the requested house.');
     const member = await store.get<Member>(`houses/${identifier(house)}/members/${identity.uid}`);
-    if (!member || !member.active) forbidden();
+    if (!member || !member.active)
+      throw new ApiError(
+        403,
+        'access_removed',
+        'Your house access is inactive. Contact the house owner.',
+      );
     return new Access(identity, house, member);
   }
 }

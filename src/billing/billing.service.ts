@@ -91,16 +91,20 @@ export class BillingService {
       .digest('hex');
     const billId = `${month}_${unitId}`;
     return this.store.transaction(async (tx) => {
-      await a.recheck(tx);
-      const existing = await tx.get<Bill>(a.path('bills', billId));
-      const unit = await tx.get<Unit>(a.path('units', unitId));
-      const house = (await tx.get<House>(`houses/${a.houseId}`))!;
-      const summary = (await tx.get<Summary>(a.path('summaries', month))) ?? {
+      const [, existing, unit, house, summaryRecord, photo] = await Promise.all([
+        a.recheck(tx),
+        tx.get<Bill>(a.path('bills', billId)),
+        tx.get<Unit>(a.path('units', unitId)),
+        tx.get<House>(`houses/${a.houseId}`),
+        publish ? tx.get<Summary>(a.path('summaries', month)) : Promise.resolve(null),
+        photoId ? tx.get<Photo>(a.path('photos', photoId)) : Promise.resolve(null),
+      ]);
+      if (!house) throw new ApiError(404, 'not_found', 'House not found.');
+      const summary = summaryRecord ?? {
         billCount: 0,
         totalPaisa: 0,
         usageWh: 0,
       };
-      const photo = photoId ? await tx.get<Photo>(a.path('photos', photoId)) : null;
       if (existing) {
         if (publish && existing.requestId === requestId && existing.fingerprint === fingerprint)
           return existing;

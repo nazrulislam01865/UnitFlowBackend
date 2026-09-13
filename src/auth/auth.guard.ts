@@ -24,6 +24,9 @@ export class AuthGuard implements CanActivate {
     if (!header.startsWith('Bearer '))
       throw new ApiError(401, 'unauthenticated', 'Please sign in.');
     request.identity = await this.auth.verify(header.slice(7));
+    const house = request.headers['x-unitflow-house'];
+    if (typeof house === 'string')
+      request.identity = { ...request.identity, requestedHouseId: house };
     await this.limits.consume(request.identity.uid);
     return true;
   }

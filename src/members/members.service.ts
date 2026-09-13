@@ -7,7 +7,7 @@ import { Clock } from '../common/clock.service';
 import { House, Member, Profile, Unit } from '../common/models';
 import { bad, conflict, forbidden } from '../common/errors/api-error';
 import { field, identifier, onlyFields, searchTokens } from '../common/validation/fields';
-import { AssignMemberDto, EditMemberDto, RemoveMemberDto } from './member.dto';
+import { AssignMemberDto, CreateManagerDto, EditMemberDto, RemoveMemberDto } from './member.dto';
 @Injectable()
 export class MembersService {
   constructor(
@@ -16,6 +16,92 @@ export class MembersService {
     private readonly clock: Clock,
     private readonly audit: AuditService,
   ) {}
+  async createManager(a: Access, body: CreateManagerDto): Promise<Member> {
+    a.requireOwner();
+    onlyFields(body, ['email', 'name', 'phone', 'password']);
+    const email = field(body, 'email', 254).toLowerCase();
+    const name = field(body, 'name');
+    const phone = field(body, 'phone', 30, true);
+    if (
+      typeof body.password !== 'string' ||
+      body.password.length < 12 ||
+      body.password.length > 128
+    )
+      bad('Use a password between 12 and 128 characters.');
+    const house = await this.store.get<House>(`houses/${a.houseId}`);
+    if (!house) conflict('Refresh your house before creating a manager.');
+    if (house.managerUid) {
+      const current = await this.store.get<Member>(a.path('members', house.managerUid));
+      if (!current || current.email !== email)
+        conflict('Remove the current manager before creating another.');
+    }
+    // Auth accounts stay disabled until the atomic house membership write succeeds.
+    // Deterministic provisioning supports retry after a timeout without taking over existing users.
+    const target = await this.auth.provisionManager(email, body.password, name, a.houseId);
+    const result = await this.store.transaction(async (tx) => {
+      await a.recheck(tx);
+      const [currentHouse, profile, existing] = await Promise.all([
+        tx.get<House>(`houses/${a.houseId}`),
+        tx.get<Profile>(`profiles/${target.uid}`),
+        tx.get<Member>(a.path('members', target.uid)),
+      ]);
+      if (!currentHouse) conflict('The house is unavailable.');
+      if (currentHouse.managerUid && currentHouse.managerUid !== target.uid)
+        conflict('Remove the current manager before creating another.');
+      if (
+        (profile?.boundHouseId && profile.boundHouseId !== a.houseId) ||
+        (profile?.houseId && profile.houseId !== a.houseId)
+      )
+        conflict('This account belongs to another house.');
+      if (existing?.active && existing.role === 'manager' && currentHouse.managerUid === target.uid)
+        return { member: existing, activate: profile?.activationPending === true };
+      if (existing)
+        conflict('This manager account was removed. Use a new email for a new account.');
+      const created: Member = {
+        uid: target.uid,
+        id: target.uid,
+        email,
+        name,
+        phone,
+        role: 'manager',
+        unitId: '',
+        unitLabel: '',
+        meter: '',
+        active: true,
+        searchTokens: searchTokens(name, ''),
+        joinedAt: this.clock.now,
+      };
+      tx.set(a.path('members', target.uid), created);
+      tx.set(`profiles/${target.uid}`, {
+        name,
+        email,
+        phone,
+        houseId: a.houseId,
+        boundHouseId: a.houseId,
+        managedAccount: true,
+        activationPending: true,
+      });
+      tx.set(`houses/${a.houseId}`, {
+        ...currentHouse,
+        managerUid: target.uid,
+      });
+      this.audit.log(tx, a, 'Manager account created', {
+        subjectUid: target.uid,
+        after: created,
+      });
+      return { member: created, activate: true };
+    });
+    // Retrying a completed creation must never re-enable an administratively disabled account.
+    if (result.activate) {
+      await this.auth.enableManager(target.uid);
+      await this.store.transaction(async (tx) => {
+        const profile = await tx.get<Profile>(`profiles/${target.uid}`);
+        if (profile?.houseId === a.houseId && profile.managedAccount)
+          tx.set(`profiles/${target.uid}`, { ...profile, activationPending: false });
+      });
+    }
+    return result.member;
+  }
   async assign(a: Access, body: AssignMemberDto, manager: boolean): Promise<Member> {
     a.requireStaff();
     if (manager) a.requireOwner();
@@ -31,6 +117,12 @@ export class MembersService {
       const profile = (await tx.get<Profile>(`profiles/${target.uid}`)) ?? {};
       const house = (await tx.get<House>(`houses/${a.houseId}`))!;
       const unit = manager ? null : await tx.get<Unit>(a.path('units', unitId));
+      if (
+        (profile.boundHouseId && profile.boundHouseId !== a.houseId) ||
+        target.managedHouseId ||
+        profile.managedAccount
+      )
+        conflict('This account cannot be assigned to a different house or role.');
       if (profile.houseId)
         conflict('This person already has active house access. Remove it before reassignment.');
       if (manager && house.managerUid)
@@ -56,6 +148,7 @@ export class MembersService {
         name: profile.name ?? name,
         email: target.email,
         houseId: a.houseId,
+        boundHouseId: a.houseId,
       });
       if (unit)
         tx.set(a.path('units', unitId), {
@@ -127,8 +220,16 @@ export class MembersService {
         conflict(
           'Save a handover reading dated today before removing this resident. If a bill already exists this month, wait for the next cycle or use an audited adjustment process.',
         );
-      tx.set(a.path('members', uid), { ...member, active: false, removedAt: this.clock.now });
-      tx.set(`profiles/${uid}`, { ...profile, houseId: '' });
+      tx.set(a.path('members', uid), {
+        ...member,
+        active: false,
+        removedAt: this.clock.now,
+      });
+      tx.set(`profiles/${uid}`, {
+        ...profile,
+        houseId: '',
+        boundHouseId: profile.boundHouseId || a.houseId,
+      });
       if (unit)
         tx.set(a.path('units', unit.id), {
           ...unit,

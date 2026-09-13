@@ -35,9 +35,12 @@ export class FirebaseStorageGateway extends StorageGateway {
     try {
       const file = this.file(object);
       const [meta] = await file.getMetadata();
-      if (Number(meta.size) > 5 * 1024 * 1024) throw new Error('Photo exceeds supported size.');
+      if (Number(meta.size) > 4 * 1024 * 1024) throw new Error('Photo exceeds supported size.');
       const [bytes] = await file.download();
-      return { bytes, contentType: meta.contentType ?? 'application/octet-stream' };
+      return {
+        bytes,
+        contentType: meta.contentType ?? 'application/octet-stream',
+      };
     } catch {
       throw new ApiError(503, 'photo_unavailable', 'The photo is temporarily unavailable.');
     }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Store, StoreTransaction, ListOptions, QueryFilter } from '../src/firebase/store';
@@ -96,6 +97,24 @@ export class FakeAuth extends AuthGateway {
     if (!user) throw new ApiError(401, 'unauthenticated', 'Please sign in again.');
     return user;
   }
+  readonly enabled = new Set<string>();
+  async provisionManager(
+    email: string,
+    _password: string,
+    name: string,
+    houseId: string,
+  ): Promise<Identity> {
+    const uid = `managed_${createHash('sha256').update(`${houseId}:${email}`).digest('hex')}`;
+    const existing = [...this.users.values()].find((u) => u.email === email);
+    if (existing && existing.uid !== uid)
+      throw new ApiError(409, 'conflict', 'This email already has an account.');
+    const identity = existing ?? { uid, email, name, managedHouseId: houseId };
+    this.users.set(uid, identity);
+    return identity;
+  }
+  async enableManager(uid: string): Promise<void> {
+    this.enabled.add(uid);
+  }
   async findVerifiedEmail(email: string): Promise<Identity> {
     const user = [...this.users.values()].find((u) => u.email === email);
     if (!user)
@@ -151,7 +170,9 @@ export async function testApp(store: Store = new MemoryStore()) {
     .overrideProvider(Clock)
     .useValue(clock)
     .compile();
-  const app: INestApplication = module.createNestApplication({ bodyParser: false });
+  const app: INestApplication = module.createNestApplication({
+    bodyParser: false,
+  });
   app.useLogger(false);
   configureApp(app);
   await app.init();

@@ -10,9 +10,10 @@ export class DashboardService {
     private readonly clock: Clock,
   ) {}
   async get(a: Access) {
-    const house = await this.store.get<House>(`houses/${a.houseId}`);
+    const housePromise = this.store.get<House>(`houses/${a.houseId}`);
     if (!a.staff) {
-      const [bills, unit] = await Promise.all([
+      const [house, bills, unit] = await Promise.all([
+        housePromise,
         this.store.list<Bill>(a.path('bills'), {
           filters: [{ field: 'residentUid', value: a.identity.uid }],
           limit: 12,
@@ -21,10 +22,15 @@ export class DashboardService {
         }),
         this.store.get<Unit>(a.path('units', a.member.unitId)),
       ]);
-      return { house: { name: house?.name ?? null, address: house?.address ?? null }, bills, unit };
+      return {
+        house: { name: house?.name ?? null, address: house?.address ?? null },
+        bills,
+        unit,
+      };
     }
     const cycle = this.clock.cycle;
-    const [summary, completedCount, recentActivity] = await Promise.all([
+    const [house, summary, completedCount, recentActivity] = await Promise.all([
+      housePromise,
       this.store.get<Summary>(a.path('summaries', cycle)),
       this.store.count(a.path('units'), [
         { field: 'occupied', value: true },

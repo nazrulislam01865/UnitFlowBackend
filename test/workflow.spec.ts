@@ -122,24 +122,43 @@ describe('Migrated household and billing workflows', () => {
       status: 403,
     });
     await expect(
-      app
-        .get(UnitsService)
-        .create(renter, { label: '3', meter: '3', openingKwh: '0', openingDate: '2026-09-01' }),
+      app.get(UnitsService).create(renter, {
+        label: '3',
+        meter: '3',
+        openingKwh: '0',
+        openingDate: '2026-09-01',
+      }),
     ).rejects.toMatchObject({ status: 403 });
     await expect(
-      bills.saveTariff(renter, { rate: '9', fixedCharge: '50', effectiveCycle: '2026-10' }),
+      bills.saveTariff(renter, {
+        rate: '9',
+        fixedCharge: '50',
+        effectiveCycle: '2026-10',
+      }),
     ).rejects.toMatchObject({ status: 403 });
   });
   test('current tariff changes and manager tariff changes are rejected', async () => {
     await expect(
-      bills.saveTariff(owner, { rate: '9', fixedCharge: '50', effectiveCycle: '2026-09' }),
+      bills.saveTariff(owner, {
+        rate: '9',
+        fixedCharge: '50',
+        effectiveCycle: '2026-09',
+      }),
     ).rejects.toMatchObject({ status: 400 });
     await expect(
-      bills.saveTariff(manager, { rate: '9', fixedCharge: '50', effectiveCycle: '2026-10' }),
+      bills.saveTariff(manager, {
+        rate: '9',
+        fixedCharge: '50',
+        effectiveCycle: '2026-10',
+      }),
     ).rejects.toMatchObject({ status: 403 });
   });
   test('future tariff leaves backdated bills unchanged', async () => {
-    await bills.saveTariff(owner, { rate: '9', fixedCharge: '60', effectiveCycle: '2026-10' });
+    await bills.saveTariff(owner, {
+      rate: '9',
+      fixedCharge: '60',
+      effectiveCycle: '2026-10',
+    });
     const bill = await bills.reading(manager, publishInput(), true);
     expect(bill.ratePaisa).toBe(800);
     expect(bill.fixedPaisa).toBe(5000);
@@ -150,7 +169,9 @@ describe('Migrated household and billing workflows', () => {
       ...renter.member,
       uid: 'other',
     });
-    await expect(bills.bill(other, bill.id)).rejects.toMatchObject({ status: 403 });
+    await expect(bills.bill(other, bill.id)).rejects.toMatchObject({
+      status: 403,
+    });
     expect((await lists.list(other, 'bills')).items).toEqual([]);
     expect((await lists.list(other, 'activities')).items).toEqual([]);
   });
@@ -163,11 +184,15 @@ describe('Migrated household and billing workflows', () => {
       fixedCharge: '50',
     });
     const other = await Access.load(store, auth.users.get('other')!);
-    await expect(bills.bill(other, bill.id)).rejects.toMatchObject({ status: 404 });
+    await expect(bills.bill(other, bill.id)).rejects.toMatchObject({
+      status: 404,
+    });
   });
   test('removed manager is rechecked inside transactions', async () => {
     await members.remove(owner, 'manager', { reason: 'Contract ended' });
-    await expect(bills.reading(manager, input(), false)).rejects.toMatchObject({ status: 403 });
+    await expect(bills.reading(manager, input(), false)).rejects.toMatchObject({
+      status: 403,
+    });
     await expect(Access.load(store, auth.users.get('manager')!)).rejects.toMatchObject({
       code: 'unassigned',
     });
@@ -186,9 +211,12 @@ describe('Migrated household and billing workflows', () => {
   });
   test('duplicate label and meter are case insensitive', async () => {
     await expect(
-      app
-        .get(UnitsService)
-        .create(owner, { label: '2a', meter: 'new', openingKwh: '0', openingDate: '2026-09-01' }),
+      app.get(UnitsService).create(owner, {
+        label: '2a',
+        meter: 'new',
+        openingKwh: '0',
+        openingDate: '2026-09-01',
+      }),
     ).rejects.toMatchObject({ status: 409 });
     await expect(
       app.get(UnitsService).create(owner, {
@@ -214,7 +242,9 @@ describe('Migrated household and billing workflows', () => {
       .update(auth.users.get('renter')!, { name: 'Nadia Islam', phone: '123' });
     expect((await store.get<Unit>(owner.path('units', unit.id)))!.residentName).toBe('Nadia Islam');
     expect((await lists.list(manager, 'members', { search: 'isl' })).items).toHaveLength(1);
-    await expect(bills.reading(manager, input(), false)).rejects.toMatchObject({ status: 409 });
+    await expect(bills.reading(manager, input(), false)).rejects.toMatchObject({
+      status: 409,
+    });
   });
   test('edit resident updates unit snapshot and writes an audit reason', async () => {
     const edited = await members.edit(manager, 'renter', {
@@ -244,7 +274,10 @@ describe('Migrated household and billing workflows', () => {
     const first = await lists.list(owner, 'members', { limit: '2' });
     expect(first.items).toHaveLength(2);
     expect(first.nextCursor).not.toBeNull();
-    const second = await lists.list(owner, 'members', { limit: '2', after: first.nextCursor! });
+    const second = await lists.list(owner, 'members', {
+      limit: '2',
+      after: first.nextCursor!,
+    });
     expect(second.items).toHaveLength(1);
     expect(second.nextCursor).toBeNull();
     expect(new Set([...first.items, ...second.items].map((x) => x.id)).size).toBe(3);
@@ -286,7 +319,10 @@ describe('Migrated household and billing workflows', () => {
     const upload = storage.upload.bind(storage);
     jest.spyOn(storage, 'upload').mockImplementation(async (...args) => {
       const generation = await upload(...args);
-      store.documents.set(owner.path('units', unit.id), { ...unit, revision: unit.revision + 1 });
+      store.documents.set(owner.path('units', unit.id), {
+        ...unit,
+        revision: unit.revision + 1,
+      });
       return generation;
     });
     await expect(
@@ -300,7 +336,9 @@ describe('Migrated household and billing workflows', () => {
     const first = new RateLimitService(store, clock);
     const second = new RateLimitService(store, clock);
     for (let n = 0; n < 120; n++) await (n % 2 ? first : second).consume('owner');
-    await expect(second.consume('owner')).rejects.toMatchObject({ status: 429 });
+    await expect(second.consume('owner')).rejects.toMatchObject({
+      status: 429,
+    });
     clock.value = new Date(clock.value.getTime() + 60000);
     await expect(first.consume('owner')).resolves.toBeUndefined();
   });

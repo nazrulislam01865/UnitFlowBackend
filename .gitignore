@@ -5,7 +5,8 @@ coverage/
 .env
 .env.*
 !.env.example
-secrets/
+/.env.local
+/secrets/
 *service-account*.json
 *.jks
 *.keystore

@@ -23,6 +23,8 @@ export function configureApp(app: INestApplication): void {
           event: 'request',
           requestId: req.requestId,
           status: res.statusCode,
+          method: req.method,
+          path: req.path,
           durationMs: Date.now() - start,
         }),
       ),
@@ -40,7 +42,7 @@ export function configureApp(app: INestApplication): void {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type,X-Unitflow-House');
       res.setHeader('Access-Control-Expose-Headers', 'X-Unitflow-Backend,X-Request-Id');
     }
     if (req.method === 'OPTIONS') {
@@ -50,7 +52,11 @@ export function configureApp(app: INestApplication): void {
     next();
   });
   const jsonParser = json({ limit: 16384, strict: false, inflate: false });
-  const imageParser = raw({ type: () => true, limit: 5 * 1024 * 1024, inflate: false });
+  const imageParser = raw({
+    type: () => true,
+    limit: 4 * 1024 * 1024,
+    inflate: false,
+  });
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (!['POST', 'PUT', 'PATCH'].includes(req.method)) {
       next();
