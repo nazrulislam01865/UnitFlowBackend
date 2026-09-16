@@ -1,15 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentAccess, CurrentUser } from '../auth/auth.decorators';
 import { Access } from '../auth/access';
-import { identifier } from '../common/validation/fields';
-import { ApiError, forbidden } from '../common/errors/api-error';
-import { Identity, Unit } from '../common/models';
+import { Identity } from '../common/models';
 import { HouseGuard } from '../auth/house.guard';
 import { ListService } from '../common/list.service';
 import { ListQueryDto } from '../common/list-query.dto';
 import { Store } from '../firebase/store';
 import { UnitsService } from './units.service';
-import { CreateUnitDto } from './unit.dto';
+import { AssignResidentDto, CreateUnitDto } from './unit.dto';
 @Controller('v1/units')
 export class UnitsController {
   constructor(
@@ -23,15 +21,21 @@ export class UnitsController {
   }
   @Get(':id')
   @UseGuards(HouseGuard)
-  async detail(@CurrentAccess() a: Access, @Param('id') id: string) {
-    const unit = await this.store.get<Unit>(a.path('units', identifier(id)));
-    if (!unit) throw new ApiError(404, 'not_found', 'Unit not found.');
-    if (!a.staff && unit.residentUid !== a.identity.uid) forbidden();
-    return unit;
+  detail(@CurrentAccess() access: Access, @Param('id') id: string) {
+    return this.service.detail(access, id);
   }
   @Post()
   @UseGuards(HouseGuard)
   create(@CurrentAccess() a: Access, @Body() body: CreateUnitDto) {
     return this.service.create(a, body);
+  }
+  @Put(':id/resident')
+  @UseGuards(HouseGuard)
+  assignResident(
+    @CurrentAccess() a: Access,
+    @Param('id') id: string,
+    @Body() body: AssignResidentDto,
+  ) {
+    return this.service.assignResident(a, id, body);
   }
 }

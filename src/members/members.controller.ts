@@ -17,7 +17,7 @@ import { ListService } from '../common/list.service';
 import { ListQueryDto } from '../common/list-query.dto';
 import { Store } from '../firebase/store';
 import { MembersService } from './members.service';
-import { AssignMemberDto, CreateManagerDto, EditMemberDto, RemoveMemberDto } from './member.dto';
+import { AssignMemberDto, EditMemberDto, RemoveMemberDto } from './member.dto';
 @Controller('v1')
 export class MembersController {
   constructor(
@@ -29,6 +29,11 @@ export class MembersController {
     this.lists.validate(query);
     return this.lists.list(await Access.load(this.store, user), 'members', query);
   }
+  @Get('members/:uid')
+  @UseGuards(HouseGuard)
+  detail(@CurrentAccess() access: Access, @Param('uid') uid: string) {
+    return this.service.detail(access, uid);
+  }
   @Post('residents')
   @UseGuards(HouseGuard)
   resident(@CurrentAccess() a: Access, @Body() body: AssignMemberDto) {
@@ -36,8 +41,8 @@ export class MembersController {
   }
   @Post('manager')
   @UseGuards(HouseGuard)
-  manager(@CurrentAccess() a: Access, @Body() body: CreateManagerDto) {
-    return this.service.createManager(a, body);
+  manager(@CurrentAccess() a: Access, @Body() body: AssignMemberDto) {
+    return this.service.assign(a, body, true);
   }
   @Patch('members/:uid')
   @UseGuards(HouseGuard)

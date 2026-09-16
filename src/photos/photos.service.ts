@@ -39,10 +39,10 @@ export class PhotosService {
       bytes.length > 8 &&
       bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     if (
-      bytes.length > 4 * 1024 * 1024 ||
+      bytes.length > 5 * 1024 * 1024 ||
       !((jpeg && type === 'image/jpeg') || (png && type === 'image/png'))
     )
-      bad('Choose a JPG or PNG photo up to 4 MB.');
+      bad('Choose a JPG or PNG photo up to 5 MB.');
     const unit = await this.store.get<Unit>(a.path('units', unitId));
     if (!unit || unit.residentUid === '') bad('Choose an occupied unit.');
     const id = randomUUID();

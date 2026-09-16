@@ -22,8 +22,6 @@ export class HouseholdsService {
     const id = randomUUID();
     return this.store.transaction(async (tx) => {
       const profile = await tx.get<Profile>(`profiles/${user.uid}`);
-      if (user.managedHouseId || profile?.boundHouseId || profile?.managedAccount)
-        conflict('This account is reserved for its original house.');
       if (profile?.houseId) conflict('This account already belongs to a house.');
       const member: Member = {
         uid: user.uid,
@@ -55,7 +53,6 @@ export class HouseholdsService {
         name: member.name,
         email: user.email,
         houseId: id,
-        boundHouseId: id,
       });
       return house;
     });

@@ -5,25 +5,12 @@ import { ApiRequest } from '../../auth/auth.decorators';
 export function errorResponse(
   error: unknown,
   requestId: string,
-): {
-  status: number;
-  body: { error: { code: string; message: string; requestId: string } };
-} {
+): { status: number; body: { error: { code: string; message: string; requestId: string } } } {
   if (error instanceof ApiError)
     return {
       status: error.status,
       body: { error: { code: error.code, message: error.message, requestId } },
     };
-  const providerCode = (error as { code?: number | string })?.code;
-  if (providerCode === 9 || providerCode === 'failed-precondition')
-    return errorResponse(
-      new ApiError(
-        503,
-        'database_setup_required',
-        'Some records are not ready because database setup is incomplete. Contact the house owner.',
-      ),
-      requestId,
-    );
   const type = (error as { type?: string })?.type;
   if (type === 'entity.too.large')
     return errorResponse(new ApiError(413, 'too_large', 'The request is too large.'), requestId);
@@ -63,14 +50,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
           event: 'request_failed',
           requestId: req.requestId,
           errorType: error instanceof Error ? error.name : 'Unknown',
-          providerCode: (error as { code?: number | string })?.code,
-          // Only log a provider index URL, never request bodies, tokens or credentials.
-          indexUrl:
-            error instanceof Error
-              ? error.message.match(/https:\/\/console\.firebase\.google\.com\/[^\s]+/)?.[0]
-              : undefined,
-          method: req.method,
-          path: req.path,
         }),
       );
     if (result.status === 429) res.setHeader('Retry-After', '60');

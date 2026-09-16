@@ -1,3 +1,5 @@
+import { ReportsService } from './reports.service';
+import { ReportQueryDto } from './report.dto';
 import {
   Body,
   Controller,
@@ -24,7 +26,13 @@ export class BillingController {
     private readonly service: BillingService,
     private readonly lists: ListService,
     private readonly store: Store,
+    private readonly reports: ReportsService,
   ) {}
+  @Get('reports')
+  @UseGuards(HouseGuard)
+  report(@CurrentAccess() access: Access, @Query() query: ReportQueryDto) {
+    return this.reports.get(access, query);
+  }
   @Get('bills') async list(@CurrentUser() user: Identity, @Query() query: ListQueryDto) {
     this.lists.validate(query);
     return this.lists.list(await Access.load(this.store, user), 'bills', query);

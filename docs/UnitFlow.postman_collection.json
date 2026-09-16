@@ -1,0 +1,453 @@
+{
+  "info": {
+    "name": "UnitFlow Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Use dedicated test accounts. Run requests individually, not blindly as a runner. Set dates, public Firebase API key and credentials. Firebase user must verify email. No production secrets are included."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{idToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "firebaseApiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "residentEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "residentUid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unitId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revision",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "openingDate",
+      "value": "2026-09-01",
+      "type": "string"
+    },
+    {
+      "key": "readingDate",
+      "value": "2026-09-16",
+      "type": "string"
+    },
+    {
+      "key": "currentKwh",
+      "value": "1987.000",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expectedTotalPaisa",
+      "value": "120600",
+      "type": "string"
+    },
+    {
+      "key": "expectedRatePaisa",
+      "value": "800",
+      "type": "string"
+    },
+    {
+      "key": "expectedFixedPaisa",
+      "value": "5000",
+      "type": "string"
+    },
+    {
+      "key": "billId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Firebase email/password sign-in",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebaseApiKey}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"returnSecureToken\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.set('idToken', pm.response.json().idToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Process health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/healthz",
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "Database readiness",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/readyz",
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "Session",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/session"
+      }
+    },
+    {
+      "name": "Save own profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/profile",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Nazrul Islam\",\n  \"phone\": \"\",\n  \"address\": \"Dhaka\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Create house (once per account)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/houses",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Shapla House\",\n  \"address\": \"Dhaka\",\n  \"rate\": \"8.00\",\n  \"fixedCharge\": \"50.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/dashboard"
+      }
+    },
+    {
+      "name": "Members",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/members?limit=30"
+      }
+    },
+    {
+      "name": "Add verified renter without room",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/residents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{residentEmail}}\",\n  \"name\": \"Nadia\",\n  \"phone\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('residentUid', pm.response.json().uid);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create vacant room",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/units",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"label\": \"2A\",\n  \"meter\": \"MT-2A\",\n  \"openingKwh\": \"1842.500\",\n  \"openingDate\": \"{{openingDate}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) { const data=pm.response.json(); pm.collectionVariables.set('unitId',data.id); pm.collectionVariables.set('revision',data.revision); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assign room to renter",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/units/{{unitId}}/resident",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"residentUid\": \"{{residentUid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.set('revision',pm.response.json().revision);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pending rooms",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/units?status=pending&limit=30"
+      }
+    },
+    {
+      "name": "Preview bill",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/readings/preview",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"unitId\": \"{{unitId}}\",\n  \"currentKwh\": \"{{currentKwh}}\",\n  \"readingDate\": \"{{readingDate}}\",\n  \"expectedRevision\": {{revision}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) { const data=pm.response.json(); for (const field of ['Total','Rate','Fixed']) pm.collectionVariables.set('expected'+field+'Paisa',data[field.toLowerCase()+'Paisa']); pm.collectionVariables.set('requestId',pm.variables.replaceIn('{{$guid}}')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publish bill / retry same request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/readings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"unitId\": \"{{unitId}}\",\n  \"currentKwh\": \"{{currentKwh}}\",\n  \"readingDate\": \"{{readingDate}}\",\n  \"expectedRevision\": {{revision}},\n  \"requestId\": \"{{requestId}}\",\n  \"expectedTotalPaisa\": {{expectedTotalPaisa}},\n  \"expectedRatePaisa\": {{expectedRatePaisa}},\n  \"expectedFixedPaisa\": {{expectedFixedPaisa}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('billId',pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bills",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/bills?limit=30"
+      }
+    },
+    {
+      "name": "Bill detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/bills/{{billId}}"
+      }
+    },
+    {
+      "name": "Monthly report",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/reports?from=2026-09&to=2026-09"
+      }
+    },
+    {
+      "name": "Activity",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/activities?limit=30"
+      }
+    },
+    {
+      "name": "Room detail / current revision",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/units/{{unitId}}",
+        "header": []
+      }
+    },
+    {
+      "name": "Renter detail",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/members/{{residentUid}}",
+        "header": []
+      }
+    }
+  ]
+}

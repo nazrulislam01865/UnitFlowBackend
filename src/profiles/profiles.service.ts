@@ -4,7 +4,6 @@ import { Access } from '../auth/access';
 import { House, Identity, Member, Profile, Unit } from '../common/models';
 import { AuditService } from '../common/audit.service';
 import { field, onlyFields, searchTokens } from '../common/validation/fields';
-import { ApiError } from '../common/errors/api-error';
 import { UpdateProfileDto } from './profile.dto';
 @Injectable()
 export class ProfilesService {
@@ -17,16 +16,8 @@ export class ProfilesService {
       name: user.name,
       email: user.email,
     };
-    if (!profile.houseId) {
-      if (profile.managedAccount || user.managedHouseId)
-        throw new ApiError(
-          403,
-          'access_removed',
-          'Your house access is inactive. Contact the house owner.',
-        );
-      return { profile, member: null, house: null };
-    }
-    const access = await Access.load(this.store, user, profile);
+    if (!profile.houseId) return { profile, member: null, house: null };
+    const access = await Access.load(this.store, user);
     return {
       profile,
       member: access.member,
@@ -43,7 +34,7 @@ export class ProfilesService {
       const houseId = old.houseId;
       const member = houseId ? await tx.get<Member>(`houses/${houseId}/members/${user.uid}`) : null;
       const unit =
-        member?.active && member.role === 'renter'
+        member?.active && member.role === 'renter' && member.unitId
           ? await tx.get<Unit>(`houses/${houseId}/units/${member.unitId}`)
           : null;
       const updated = { ...old, name, phone, address, email: user.email };

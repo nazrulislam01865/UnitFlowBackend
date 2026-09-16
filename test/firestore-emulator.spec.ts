@@ -121,4 +121,37 @@ run('Real Firestore emulator integration', () => {
     });
     expect(rows).toHaveLength(1);
   });
+  test('unassigned member workflow persists in the real database', async () => {
+    const members = new MembersService(store, auth, clock, new AuditService(clock));
+    const member = await members.assign(
+      owner,
+      { email: 'other@example.com', name: 'New renter' },
+      false,
+    );
+    expect(member.unitId).toBe('');
+    const meters = new UnitsService(store, clock, new AuditService(clock));
+    const first = await meters.create(owner, {
+      label: 'B',
+      meter: 'MB',
+      openingKwh: '0',
+      openingDate: '2026-09-01',
+    });
+    const second = await meters.create(owner, {
+      label: 'C',
+      meter: 'MC',
+      openingKwh: '0',
+      openingDate: '2026-09-01',
+    });
+    const results = await Promise.allSettled([
+      meters.assignResident(owner, first.id, { residentUid: 'other' }),
+      meters.assignResident(owner, second.id, { residentUid: 'other' }),
+    ]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    const saved = await store.get<{ unitId: string }>(owner.path('members', 'other'));
+    expect([first.id, second.id]).toContain(saved!.unitId);
+    expect(await store.count(owner.path('units'), [{ field: 'residentUid', value: 'other' }])).toBe(
+      1,
+    );
+  }, 30000);
 });
