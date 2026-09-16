@@ -14,6 +14,8 @@ NestJS backend built from the supplied sample and checked against the supplied F
 
 Owners create a house and manage tariff/manager access. Owners and managers manage renters and rooms, capture readings and publish bills. Renters see only their own meter/bills/photos/activities. Add a verified renter before assigning their room. One active house per user, one manager and one owner per house, one room per renter, one bill per room/month. Currency BDT and business timezone Asia/Dhaka are intentional constraints of this smallest version.
 
+For Vercel `ERR_REQUIRE_ESM` or missing local `reflect-metadata`/`nest`, see [the exact fix and redeploy steps](docs/VERCEL_FIX.md).
+
 ## Local setup (macOS/Linux)
 
 1. Install Node 24, then open this directory:

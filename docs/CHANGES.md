@@ -14,3 +14,9 @@
 - Excluded the uploaded service-account private key, compiled output and dependencies from the deliverable.
 
 Flutter UI and repositories were inspected, not modified. Production project data was not changed.
+
+## Vercel compatibility correction
+
+- Scoped jwks-rsa's jose dependency to CommonJS-compatible 5.10.0 and regenerated the lockfile.
+- Added a regression test under a loader that disables require(ESM), including RSA/EC signing-key conversion and signature verification.
+- Documented Node 24, clean dependency installation, build-before-diagnostic and cache-free redeployment.
